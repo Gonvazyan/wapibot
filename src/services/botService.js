@@ -1,85 +1,138 @@
-const whatsappService = require('./whatsappService');
+const OpenAI = require('openai');
+const { createClient } = require('@supabase/supabase-js');
 
-// Configuración del bot por defecto
-// En el futuro vendrá de la base de datos por cada cliente
+let _openai;
+function getOpenAI() {
+  if (!_openai) _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  return _openai;
+}
+
+let _supabase;
+function getSupabase() {
+  if (!_supabase && process.env.SUPABASE_URL) {
+    _supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+  }
+  return _supabase;
+}
+
 const DEFAULT_CONFIG = {
-  businessName: 'Mi Negocio',
-  schedule: 'Lunes a Viernes: 9:00 - 20:00\nSábados: 10:00 - 14:00',
-  address: 'Calle Mayor 123, Madrid',
-  phone: '+34 912 345 678',
-  faqs: [
-    { keywords: ['precio', 'coste', 'cuánto', 'cuesta'], answer: '💰 Escríbenos para un presupuesto personalizado.' },
-    { keywords: ['horario', 'hora', 'abierto', 'cerrado'], answer: '🕐 Nuestro horario:\nLunes a Viernes: 9:00 - 20:00\nSábados: 10:00 - 14:00' },
-    { keywords: ['dirección', 'donde', 'ubicación'], answer: '📍 Estamos en Calle Mayor 123, Madrid.' },
-    { keywords: ['reserva', 'cita'], answer: '📅 Escríbenos el día y hora que prefieres y te confirmamos.' },
-  ]
+  businessName: "Mi Negocio",
+  businessType: "negocio local",
+  schedule: "Lunes a Viernes 9:00-18:00",
+  phone: "+34 600 000 000",
+  address: "Calle Principal 123",
+  services: "Consulta nuestra web para más información",
 };
 
-// Procesa mensajes de texto
-exports.processTextMessage = async (from, text) => {
-  const normalized = text.toLowerCase().trim();
+async function getBusinessConfig(customerPhone) {
+  try {
+    const sb = getSupabase();
+    if (!sb) return DEFAULT_CONFIG;
 
-  if (isGreeting(normalized)) {
-    return sendMainMenu(from);
+    const { data, error } = await sb
+      .from('businesses')
+      .select('*')
+      .eq('active', true)
+      .single();
+
+    if (error || !data) return DEFAULT_CONFIG;
+
+    return {
+      businessName: data.business_name,
+      businessType: data.business_type,
+      schedule: data.schedule,
+      phone: data.phone,
+      address: data.address,
+      services: data.services,
+    };
+  } catch (e) {
+    return DEFAULT_CONFIG;
   }
-
-  const faqAnswer = findFaqAnswer(normalized);
-  if (faqAnswer) {
-    await whatsappService.sendText(from, faqAnswer);
-    return sendMainMenu(from);
-  }
-
-  await whatsappService.sendText(from, '🤔 No entendí tu mensaje. Selecciona una opción:');
-  return sendMainMenu(from);
-};
-
-// Procesa respuestas a botones
-exports.processInteractiveMessage = async (from, buttonId) => {
-  switch (buttonId) {
-    case 'btn_info':
-      await whatsappService.sendText(from,
-        `ℹ️ *Información*\n\n📍 ${DEFAULT_CONFIG.address}\n📞 ${DEFAULT_CONFIG.phone}\n🕐 ${DEFAULT_CONFIG.schedule}`
-      );
-      break;
-    case 'btn_reservation':
-      await whatsappService.sendText(from,
-        '📅 Escríbenos el día y hora que prefieres y te confirmamos disponibilidad.'
-      );
-      break;
-    case 'btn_contact':
-      await whatsappService.sendText(from,
-        `📞 Llámanos al ${DEFAULT_CONFIG.phone} o escríbenos aquí. 😊`
-      );
-      break;
-    default:
-      return sendMainMenu(from);
-  }
-};
-
-// ── Helpers ───────────────────────────────────────────
-
-function isGreeting(text) {
-  const greetings = ['hola', 'buenos días', 'buenas', 'buenas tardes', 'buenas noches', 'hey', 'hi'];
-  return greetings.some(g => text.includes(g));
 }
 
-function findFaqAnswer(text) {
-  for (const faq of DEFAULT_CONFIG.faqs) {
-    if (faq.keywords.some(k => text.includes(k))) {
-      return faq.answer;
-    }
+async function saveConversation(customerPhone, message, response) {
+  try {
+    const sb = getSupabase();
+    if (!sb) return;
+    await sb.from('conversations').insert({
+      customer_phone: customerPhone,
+      message: message,
+      response: response,
+    });
+  } catch (e) {
+    console.error('Error guardando conversación:', e.message);
   }
-  return null;
 }
 
-async function sendMainMenu(from) {
-  await whatsappService.sendButtons(
-    from,
-    `¡Hola! 👋 Soy el asistente de *${DEFAULT_CONFIG.businessName}*. ¿En qué puedo ayudarte?`,
-    [
-      { id: 'btn_info',        title: '📍 Información' },
-      { id: 'btn_reservation', title: '📅 Reservar' },
-      { id: 'btn_contact',     title: '📞 Contactar' },
-    ]
-  );
+async function processMessage(messageText, from) {
+  const config = await getBusinessConfig(from);
+  const text = messageText.toLowerCase().trim();
+
+  if (text === 'hola' || text === 'inicio' || text === 'menu' || text === 'menú') {
+    return {
+      type: 'buttons',
+      body: `¡Hola! 👋 Soy el asistente virtual de *${config.businessName}*.\n\n¿En qué puedo ayudarte?`,
+      buttons: [
+        { id: 'info', title: '📍 Información' },
+        { id: 'reservar', title: '📅 Reservar' },
+        { id: 'contactar', title: '📞 Contactar' },
+      ]
+    };
+  }
+
+  if (text === 'info' || text === 'información') {
+    return {
+      type: 'text',
+      body: `📍 *${config.businessName}*\n\n🕐 Horario: ${config.schedule}\n📍 Dirección: ${config.address}\n📞 Teléfono: ${config.phone}`
+    };
+  }
+
+  if (text === 'reservar') {
+    return {
+      type: 'text',
+      body: `📅 Para hacer una reserva, escríbeme qué servicio necesitas y te digo disponibilidad.`
+    };
+  }
+
+  if (text === 'contactar') {
+    return {
+      type: 'text',
+      body: `📞 Puedes contactarnos en:\n\nTeléfono: ${config.phone}\nHorario: ${config.schedule}`
+    };
+  }
+
+  try {
+    const aiResponse = await getOpenAI().chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: `Eres el asistente virtual de "${config.businessName}", un ${config.businessType}.
+Responde de forma amable, concisa y profesional en español.
+Horario: ${config.schedule}
+Dirección: ${config.address}
+Teléfono: ${config.phone}
+Servicios: ${config.services}
+Si no sabes algo, di que lo consulten directamente con el negocio.
+Máximo 3 párrafos cortos.`
+        },
+        { role: 'user', content: messageText }
+      ],
+      max_tokens: 300,
+    });
+
+    const responseText = aiResponse.choices[0].message.content;
+    await saveConversation(from, messageText, responseText);
+
+    return { type: 'text', body: responseText };
+
+  } catch (error) {
+    console.error('Error OpenAI:', error.message);
+    return {
+      type: 'text',
+      body: '⚠️ Ahora mismo no puedo responder. Por favor contáctanos directamente.'
+    };
+  }
 }
+
+module.exports = { processMessage };
