@@ -1,12 +1,3 @@
-process.on('uncaughtException', (err) => {
-  console.error('💥 UNCAUGHT EXCEPTION:', err);
-  process.exit(1);
-});
-process.on('unhandledRejection', (err) => {
-  console.error('💥 UNHANDLED REJECTION:', err);
-  process.exit(1);
-});
-
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 const express = require('express');
 const cors = require('cors');
@@ -20,16 +11,19 @@ const adminRoutes = require('./routes/admin');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// ── Middlewares ──────────────────────────────────────
 app.use(helmet());
 app.use(cors());
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// ── Rutas ────────────────────────────────────────────
 app.use('/webhook', webhookRoutes);
 app.use('/api/bot', botRoutes);
 app.use('/api/admin', adminRoutes);
 
+// ── Health check ─────────────────────────────────────
 app.get('/', (req, res) => {
   res.json({ 
     status: '✅ WapiBot corriendo',
@@ -38,6 +32,7 @@ app.get('/', (req, res) => {
   });
 });
 
+// ── Error handler ────────────────────────────────────
 app.use((err, req, res, next) => {
   console.error('❌ Error:', err.message);
   res.status(500).json({ error: err.message });
