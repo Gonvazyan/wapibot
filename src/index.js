@@ -29,13 +29,15 @@ app.get('/', (req, res) => {
   });
 });
 
-app.use((err, req, res, next) => {
+// Error handler middleware should be placed after all route handlers
+app.use((err, _req, res, _next) => {
   console.error('❌ Error:', err.message);
   res.status(500).json({ error: err.message });
 });
-
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 WapiBot corriendo en http://localhost:${PORT}`);
+const HOST = process.env.HOST || '0.0.0.0';
+app.listen(PORT, HOST, () => {
+  console.log(`🚀 WapiBot corriendo en http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}`);
 });
 
+// Exporting app for testing purposes (e.g., with supertest)
 module.exports = app;
