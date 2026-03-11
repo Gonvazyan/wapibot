@@ -1,4 +1,3 @@
-require('express-async-errors');
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 const express = require('express');
 const cors = require('cors');
@@ -34,12 +33,12 @@ app.get('/', (req, res) => {
 });
 
 // ── Error handler ────────────────────────────────────
-app.use((err, res) => {
+app.use((err, req, res, next) => {
   console.error('❌ Error:', err.message);
   res.status(500).json({ error: err.message });
 });
 
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, () => {
   console.log(`🚀 WapiBot corriendo en http://localhost:${PORT}`);
 });
 
