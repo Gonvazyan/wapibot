@@ -1,3 +1,4 @@
+require('express-async-errors');
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 const express = require('express');
 const cors = require('cors');
@@ -11,7 +12,7 @@ const adminRoutes = require('./routes/admin');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ── Middlewares ──────────────────────────────────────
+// ── Middleware ───────────────────────────────────────
 app.use(helmet());
 app.use(cors());
 app.use(morgan('dev'));
@@ -23,23 +24,23 @@ app.use('/webhook', webhookRoutes);
 app.use('/api/bot', botRoutes);
 app.use('/api/admin', adminRoutes);
 
-// ── Health check ─────────────────────────────────────
+// ── Comprobación de salud ─────────────────────────────
 app.get('/', (req, res) => {
   res.json({ 
-    status: '✅ WapiBot corriendo',
+    estado: '✅ WapiBot corriendo',
     version: '1.0.0',
-    timestamp: new Date().toISOString()
+    marcaDeTiempo: new Date().toISOString()
   });
 });
 
-// ── Error handler ────────────────────────────────────
+// ── Manejador de errores ─────────────────────────────
 app.use((err, req, res, next) => {
   console.error('❌ Error:', err.message);
   res.status(500).json({ error: err.message });
 });
-
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, () => {
   console.log(`🚀 WapiBot corriendo en http://localhost:${PORT}`);
 });
 
+// Exporting app for testing purposes (e.g., with supertest)
 module.exports = app;
