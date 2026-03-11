@@ -24,7 +24,7 @@ const DEFAULT_CONFIG = {
   services: "Consulta nuestra web para más información",
 };
 
-async function getBusinessConfig(customerPhone) {
+async function getBusinessConfig(phoneNumberId) {
   try {
     const sb = getSupabase();
     if (!sb) return DEFAULT_CONFIG;
@@ -32,6 +32,7 @@ async function getBusinessConfig(customerPhone) {
     const { data, error } = await sb
       .from('businesses')
       .select('*')
+      .eq('phone_number_id', phoneNumberId)
       .eq('active', true)
       .single();
 
@@ -64,8 +65,8 @@ async function saveConversation(customerPhone, message, response) {
   }
 }
 
-async function processMessage(messageText, from) {
-  const config = await getBusinessConfig(from);
+async function processMessage(messageText, from, phoneNumberId) {
+  const config = await getBusinessConfig(phoneNumberId);
   const text = messageText.toLowerCase().trim();
 
   if (text === 'hola' || text === 'inicio' || text === 'menu' || text === 'menú') {

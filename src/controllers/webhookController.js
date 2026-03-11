@@ -25,20 +25,20 @@ exports.handleMessage = async (req, res) => {
 
     const value = body.entry?.[0]?.changes?.[0]?.value;
 
-    // Ignorar notificaciones de estado
     if (value?.statuses) return res.sendStatus(200);
 
     const message = value?.messages?.[0];
     if (!message) return res.sendStatus(200);
 
-    // Ignorar mensajes antiguos
     const messageTime = parseInt(message.timestamp) * 1000;
     if (Date.now() - messageTime > 30000) return res.sendStatus(200);
 
     const from = message.from;
     const type = message.type;
+    const phoneNumberId = value?.metadata?.phone_number_id;
 
     console.log(`📩 Mensaje de ${from} | Tipo: ${type}`);
+    console.log(`📱 PHONE_ID: ${phoneNumberId}`);
 
     let messageText;
 
@@ -52,7 +52,7 @@ exports.handleMessage = async (req, res) => {
       return res.sendStatus(200);
     }
 
-    const response = await botService.processMessage(messageText, from);
+    const response = await botService.processMessage(messageText, from, phoneNumberId);
 
     if (response.type === 'buttons') {
       await whatsappService.sendButtons(from, response.body, response.buttons);
