@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WapiBot Admin</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f2f5; color: #1a1a1a; }
+
+    .login-screen {
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; background: #075e54;
+    }
+    .login-box {
+      background: white; padding: 40px; border-radius: 16px;
+      width: 100%; max-width: 380px; text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    }
+    .login-box h1 { font-size: 28px; margin-bottom: 8px; }
+    .login-box p { color: #666; margin-bottom: 24px; }
+    .login-box input {
+      width: 100%; padding: 12px 16px; border: 2px solid #e0e0e0;
+      border-radius: 8px; font-size: 16px; margin-bottom: 12px;
+    }
+    .login-box input:focus { outline: none; border-color: #075e54; }
+
+    header {
+      background: #075e54; color: white; padding: 16px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    header h1 { font-size: 20px; }
+    header span { font-size: 14px; opacity: 0.8; }
+
+    .container { max-width: 900px; margin: 32px auto; padding: 0 16px; }
+
+    .card {
+      background: white; border-radius: 12px; padding: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 24px;
+    }
+    .card h2 { font-size: 18px; margin-bottom: 20px; color: #075e54; }
+
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-grid .full { grid-column: 1 / -1; }
+    label { display: block; font-size: 13px; font-weight: 600; color: #555; margin-bottom: 4px; }
+    input[type="text"], textarea {
+      width: 100%; padding: 10px 12px; border: 2px solid #e0e0e0;
+      border-radius: 8px; font-size: 14px; font-family: inherit;
+    }
+    input[type="text"]:focus, textarea:focus { outline: none; border-color: #075e54; }
+    textarea { resize: vertical; min-height: 70px; }
+
+    .btn {
+      padding: 10px 20px; border: none; border-radius: 8px;
+      font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.2s;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn-primary { background: #075e54; color: white; }
+    .btn-danger { background: #ff4444; color: white; }
+    .btn-secondary { background: #e0e0e0; color: #333; }
+
+    .business-list { display: flex; flex-direction: column; gap: 12px; }
+    .business-item {
+      border: 2px solid #e0e0e0; border-radius: 10px; padding: 16px;
+      display: flex; align-items: center; justify-content: space-between;
+      transition: border-color 0.2s;
+    }
+    .business-item:hover { border-color: #075e54; }
+    .business-item.inactive { opacity: 0.5; }
+    .business-info h3 { font-size: 16px; margin-bottom: 4px; }
+    .business-info p { font-size: 13px; color: #666; }
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 999px;
+      font-size: 11px; font-weight: 700; margin-left: 8px;
+    }
+    .badge-active { background: #e6f4f1; color: #075e54; }
+    .badge-inactive { background: #ffe0e0; color: #cc0000; }
+    .business-actions { display: flex; gap: 8px; }
+
+    .toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: #1a1a1a; color: white; padding: 12px 20px;
+      border-radius: 8px; font-size: 14px; opacity: 0;
+      transition: opacity 0.3s; pointer-events: none; z-index: 999;
+    }
+    .toast.show { opacity: 1; }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-box">
+    <h1>🤖 WapiBot</h1>
+    <p>Panel de administración</p>
+    <input type="password" id="passwordInput" placeholder="Contraseña" />
+    <button class="btn btn-primary" style="width:100%;padding:12px" onclick="login()">Entrar</button>
+  </div>
+</div>
+
+<!-- PANEL -->
+<div id="adminPanel" class="hidden">
+  <header>
+    <h1>🤖 WapiBot Admin</h1>
+    <span id="businessCount">0 negocios</span>
+  </header>
+
+  <div class="container">
+
+    <!-- Formulario nuevo negocio -->
+    <div class="card">
+      <h2>➕ Nuevo negocio</h2>
+      <div class="form-grid">
+        <div>
+          <label>Nombre del negocio *</label>
+          <input type="text" id="f_name" placeholder="Ej: Peluquería María" />
+        </div>
+        <div>
+          <label>Tipo de negocio</label>
+          <input type="text" id="f_type" placeholder="Ej: peluquería, restaurante..." />
+        </div>
+        <div>
+          <label>Phone Number ID de Meta *</label>
+          <input type="text" id="f_phone_id" placeholder="Ej: 1082028861652687" />
+        </div>
+        <div>
+          <label>Teléfono de contacto</label>
+          <input type="text" id="f_phone" placeholder="Ej: +34 600 000 000" />
+        </div>
+        <div>
+          <label>Horario</label>
+          <input type="text" id="f_schedule" placeholder="Ej: Lunes a Viernes 9:00-18:00" />
+        </div>
+        <div>
+          <label>Dirección</label>
+          <input type="text" id="f_address" placeholder="Ej: Calle Gran Vía 1, Madrid" />
+        </div>
+        <div class="full">
+          <label>Servicios</label>
+          <textarea id="f_services" placeholder="Describe los servicios que ofrece el negocio..."></textarea>
+        </div>
+      </div>
+      <div style="margin-top:16px">
+        <button class="btn btn-primary" onclick="createBusiness()">Crear negocio</button>
+      </div>
+    </div>
+
+    <!-- Lista de negocios -->
+    <div class="card">
+      <h2>🏪 Negocios registrados</h2>
+      <div class="business-list" id="businessList">
+        <p style="color:#999;text-align:center;padding:20px">Cargando...</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+  let password = '';
+  const API = '';
+
+  function login() {
+    password = document.getElementById('passwordInput').value;
+    if (!password) return;
+    loadBusinesses();
+  }
+
+  document.getElementById('passwordInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') login();
+  });
+
+  function headers() {
+    return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${password}` };
+  }
+
+  async function loadBusinesses() {
+    try {
+      const res = await fetch(`${API}/api/admin/businesses`, { headers: headers() });
+      if (res.status === 401) { toast('❌ Contraseña incorrecta'); return; }
+      const data = await res.json();
+
+      document.getElementById('loginScreen').classList.add('hidden');
+      document.getElementById('adminPanel').classList.remove('hidden');
+      document.getElementById('businessCount').textContent = `${data.length} negocio${data.length !== 1 ? 's' : ''}`;
+
+      const list = document.getElementById('businessList');
+      if (!data.length) {
+        list.innerHTML = '<p style="color:#999;text-align:center;padding:20px">No hay negocios aún</p>';
+        return;
+      }
+
+      list.innerHTML = data.map(b => `
+        <div class="business-item ${b.active ? '' : 'inactive'}">
+          <div class="business-info">
+            <h3>${b.business_name} <span class="badge ${b.active ? 'badge-active' : 'badge-inactive'}">${b.active ? 'Activo' : 'Inactivo'}</span></h3>
+            <p>📱 ${b.phone_number_id} · 🏪 ${b.business_type || 'Sin tipo'} · 📍 ${b.address || 'Sin dirección'}</p>
+          </div>
+          <div class="business-actions">
+            <button class="btn btn-secondary" onclick="toggleActive('${b.id}', ${b.active})">${b.active ? 'Desactivar' : 'Activar'}</button>
+            <button class="btn btn-danger" onclick="deleteBusiness('${b.id}')">🗑</button>
+          </div>
+        </div>
+      `).join('');
+    } catch (e) {
+      toast('❌ Error conectando con el servidor');
+    }
+  }
+
+  async function createBusiness() {
+    const body = {
+      business_name: document.getElementById('f_name').value.trim(),
+      business_type: document.getElementById('f_type').value.trim(),
+      phone_number_id: document.getElementById('f_phone_id').value.trim(),
+      phone: document.getElementById('f_phone').value.trim(),
+      schedule: document.getElementById('f_schedule').value.trim(),
+      address: document.getElementById('f_address').value.trim(),
+      services: document.getElementById('f_services').value.trim(),
+    };
+
+    if (!body.business_name || !body.phone_number_id) {
+      toast('⚠️ Nombre y Phone Number ID son obligatorios');
+      return;
+    }
+
+    const res = await fetch(`${API}/api/admin/businesses`, {
+      method: 'POST', headers: headers(), body: JSON.stringify(body)
+    });
+
+    if (res.ok) {
+      toast('✅ Negocio creado correctamente');
+      ['f_name','f_type','f_phone_id','f_phone','f_schedule','f_address','f_services']
+        .forEach(id => document.getElementById(id).value = '');
+      loadBusinesses();
+    } else {
+      const err = await res.json();
+      toast(`❌ Error: ${err.error}`);
+    }
+  }
+
+  async function toggleActive(id, current) {
+    await fetch(`${API}/api/admin/businesses/${id}`, {
+      method: 'PUT', headers: headers(),
+      body: JSON.stringify({ active: !current })
+    });
+    toast(current ? '⏸ Negocio desactivado' : '▶️ Negocio activado');
+    loadBusinesses();
+  }
+
+  async function deleteBusiness(id) {
+    if (!confirm('¿Desactivar este negocio?')) return;
+    await fetch(`${API}/api/admin/businesses/${id}`, { method: 'DELETE', headers: headers() });
+    toast('🗑 Negocio desactivado');
+    loadBusinesses();
+  }
+
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+</script>
+</body>
+</html>

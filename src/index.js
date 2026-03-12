@@ -1,8 +1,18 @@
+process.on('uncaughtException', (err) => {
+  console.error('💥 UNCAUGHT EXCEPTION:', err);
+  process.exit(1);
+});
+process.on('unhandledRejection', (err) => {
+  console.error('💥 UNHANDLED REJECTION:', err);
+  process.exit(1);
+});
+
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const path = require('path');
 
 const webhookRoutes = require('./routes/webhook');
 const botRoutes = require('./routes/bot');
@@ -16,6 +26,7 @@ app.use(cors());
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, '..', 'public')));
 
 app.use('/webhook', webhookRoutes);
 app.use('/api/bot', botRoutes);
@@ -29,15 +40,14 @@ app.get('/', (req, res) => {
   });
 });
 
-// Error handler middleware should be placed after all route handlers
 app.use((err, _req, res, _next) => {
   console.error('❌ Error:', err.message);
   res.status(500).json({ error: err.message });
 });
+
 const HOST = process.env.HOST || '0.0.0.0';
 app.listen(PORT, HOST, () => {
   console.log(`🚀 WapiBot corriendo en http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}`);
 });
 
-// Exporting app for testing purposes (e.g., with supertest)
 module.exports = app;
