@@ -42,11 +42,11 @@
     .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .form-grid .full { grid-column: 1 / -1; }
     label { display: block; font-size: 13px; font-weight: 600; color: #555; margin-bottom: 4px; }
-    input[type="text"], textarea {
+    input[type="text"], input[type="password"], textarea {
       width: 100%; padding: 10px 12px; border: 2px solid #e0e0e0;
       border-radius: 8px; font-size: 14px; font-family: inherit;
     }
-    input[type="text"]:focus, textarea:focus { outline: none; border-color: #075e54; }
+    input[type="text"]:focus, input[type="password"]:focus, textarea:focus { outline: none; border-color: #075e54; }
     textarea { resize: vertical; min-height: 70px; }
 
     .btn {
@@ -57,6 +57,7 @@
     .btn-primary { background: #075e54; color: white; }
     .btn-danger { background: #ff4444; color: white; }
     .btn-secondary { background: #e0e0e0; color: #333; }
+    .btn-full { width: 100%; padding: 12px; }
 
     .business-list { display: flex; flex-direction: column; gap: 12px; }
     .business-item {
@@ -74,7 +75,7 @@
     }
     .badge-active { background: #e6f4f1; color: #075e54; }
     .badge-inactive { background: #ffe0e0; color: #cc0000; }
-    .business-actions { display: flex; gap: 8px; }
+    .business-actions { display: flex; gap: 8px; flex-shrink: 0; }
 
     .toast {
       position: fixed; bottom: 24px; right: 24px;
@@ -83,7 +84,6 @@
       transition: opacity 0.3s; pointer-events: none; z-index: 999;
     }
     .toast.show { opacity: 1; }
-
     .hidden { display: none !important; }
   </style>
 </head>
@@ -95,7 +95,7 @@
     <h1>🤖 WapiBot</h1>
     <p>Panel de administración</p>
     <input type="password" id="passwordInput" placeholder="Contraseña" />
-    <button class="btn btn-primary" style="width:100%;padding:12px" onclick="login()">Entrar</button>
+    <button class="btn btn-primary btn-full" id="loginBtn">Entrar</button>
   </div>
 </div>
 
@@ -108,7 +108,6 @@
 
   <div class="container">
 
-    <!-- Formulario nuevo negocio -->
     <div class="card">
       <h2>➕ Nuevo negocio</h2>
       <div class="form-grid">
@@ -142,11 +141,10 @@
         </div>
       </div>
       <div style="margin-top:16px">
-        <button class="btn btn-primary" onclick="createBusiness()">Crear negocio</button>
+        <button class="btn btn-primary" id="createBtn">Crear negocio</button>
       </div>
     </div>
 
-    <!-- Lista de negocios -->
     <div class="card">
       <h2>🏪 Negocios registrados</h2>
       <div class="business-list" id="businessList">
@@ -157,36 +155,31 @@
   </div>
 </div>
 
-<!-- Toast -->
 <div class="toast" id="toast"></div>
 
 <script>
   let password = '';
-  const API = '';
 
-  function login() {
-    password = document.getElementById('passwordInput').value;
-    if (!password) return;
-    loadBusinesses();
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(function() { t.classList.remove('show'); }, 3000);
   }
 
-  document.getElementById('passwordInput').addEventListener('keydown', e => {
-    if (e.key === 'Enter') login();
-  });
-
   function headers() {
-    return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${password}` };
+    return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + password };
   }
 
   async function loadBusinesses() {
     try {
-      const res = await fetch(`${API}/api/admin/businesses`, { headers: headers() });
+      const res = await fetch('/api/admin/businesses', { headers: headers() });
       if (res.status === 401) { toast('❌ Contraseña incorrecta'); return; }
       const data = await res.json();
 
       document.getElementById('loginScreen').classList.add('hidden');
       document.getElementById('adminPanel').classList.remove('hidden');
-      document.getElementById('businessCount').textContent = `${data.length} negocio${data.length !== 1 ? 's' : ''}`;
+      document.getElementById('businessCount').textContent = data.length + ' negocio' + (data.length !== 1 ? 's' : '');
 
       const list = document.getElementById('businessList');
       if (!data.length) {
@@ -194,18 +187,34 @@
         return;
       }
 
-      list.innerHTML = data.map(b => `
-        <div class="business-item ${b.active ? '' : 'inactive'}">
-          <div class="business-info">
-            <h3>${b.business_name} <span class="badge ${b.active ? 'badge-active' : 'badge-inactive'}">${b.active ? 'Activo' : 'Inactivo'}</span></h3>
-            <p>📱 ${b.phone_number_id} · 🏪 ${b.business_type || 'Sin tipo'} · 📍 ${b.address || 'Sin dirección'}</p>
-          </div>
-          <div class="business-actions">
-            <button class="btn btn-secondary" onclick="toggleActive('${b.id}', ${b.active})">${b.active ? 'Desactivar' : 'Activar'}</button>
-            <button class="btn btn-danger" onclick="deleteBusiness('${b.id}')">🗑</button>
-          </div>
-        </div>
-      `).join('');
+      list.innerHTML = '';
+      data.forEach(function(b) {
+        const item = document.createElement('div');
+        item.className = 'business-item' + (b.active ? '' : ' inactive');
+        item.innerHTML =
+          '<div class="business-info">' +
+            '<h3>' + b.business_name + ' <span class="badge ' + (b.active ? 'badge-active' : 'badge-inactive') + '">' + (b.active ? 'Activo' : 'Inactivo') + '</span></h3>' +
+            '<p>📱 ' + b.phone_number_id + ' · 🏪 ' + (b.business_type || 'Sin tipo') + ' · 📍 ' + (b.address || 'Sin dirección') + '</p>' +
+          '</div>' +
+          '<div class="business-actions">' +
+            '<button class="btn btn-secondary toggle-btn" data-id="' + b.id + '" data-active="' + b.active + '">' + (b.active ? 'Desactivar' : 'Activar') + '</button>' +
+            '<button class="btn btn-danger delete-btn" data-id="' + b.id + '">🗑</button>' +
+          '</div>';
+        list.appendChild(item);
+      });
+
+      document.querySelectorAll('.toggle-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          toggleActive(this.dataset.id, this.dataset.active === 'true');
+        });
+      });
+
+      document.querySelectorAll('.delete-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          deleteBusiness(this.dataset.id);
+        });
+      });
+
     } catch (e) {
       toast('❌ Error conectando con el servidor');
     }
@@ -227,23 +236,23 @@
       return;
     }
 
-    const res = await fetch(`${API}/api/admin/businesses`, {
+    const res = await fetch('/api/admin/businesses', {
       method: 'POST', headers: headers(), body: JSON.stringify(body)
     });
 
     if (res.ok) {
       toast('✅ Negocio creado correctamente');
       ['f_name','f_type','f_phone_id','f_phone','f_schedule','f_address','f_services']
-        .forEach(id => document.getElementById(id).value = '');
+        .forEach(function(id) { document.getElementById(id).value = ''; });
       loadBusinesses();
     } else {
       const err = await res.json();
-      toast(`❌ Error: ${err.error}`);
+      toast('❌ Error: ' + err.error);
     }
   }
 
   async function toggleActive(id, current) {
-    await fetch(`${API}/api/admin/businesses/${id}`, {
+    await fetch('/api/admin/businesses/' + id, {
       method: 'PUT', headers: headers(),
       body: JSON.stringify({ active: !current })
     });
@@ -253,17 +262,26 @@
 
   async function deleteBusiness(id) {
     if (!confirm('¿Desactivar este negocio?')) return;
-    await fetch(`${API}/api/admin/businesses/${id}`, { method: 'DELETE', headers: headers() });
+    await fetch('/api/admin/businesses/' + id, { method: 'DELETE', headers: headers() });
     toast('🗑 Negocio desactivado');
     loadBusinesses();
   }
 
-  function toast(msg) {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 3000);
-  }
+  document.getElementById('loginBtn').addEventListener('click', function() {
+    password = document.getElementById('passwordInput').value;
+    if (!password) return;
+    loadBusinesses();
+  });
+
+  document.getElementById('passwordInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      password = document.getElementById('passwordInput').value;
+      if (!password) return;
+      loadBusinesses();
+    }
+  });
+
+  document.getElementById('createBtn').addEventListener('click', createBusiness);
 </script>
 </body>
 </html>
