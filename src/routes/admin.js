@@ -3,8 +3,10 @@ const router = express.Router();
 const { createClient } = require('@supabase/supabase-js');
 const adminAuth = require('../middleware/auth');
 
+let _supabase;
 function getSupabase() {
-  return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+  if (!_supabase) _supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+  return _supabase;
 }
 
 router.get('/businesses', adminAuth, async (req, res) => {
@@ -40,9 +42,10 @@ router.post('/businesses', adminAuth, async (req, res) => {
 
 router.put('/businesses/:id', adminAuth, async (req, res) => {
   try {
+    const { business_name, business_type, phone_number_id, schedule, phone, address, services, active } = req.body;
     const { data, error } = await getSupabase()
       .from('businesses')
-      .update(req.body)
+      .update({ business_name, business_type, phone_number_id, schedule, phone, address, services, active })
       .eq('id', req.params.id)
       .select()
       .single();

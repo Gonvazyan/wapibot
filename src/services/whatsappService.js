@@ -5,9 +5,6 @@ const BASE_URL = 'https://graph.facebook.com/v21.0';
 const getApi = () => {
   const PHONE_ID = process.env.WHATSAPP_PHONE_ID;
   const TOKEN    = process.env.WHATSAPP_TOKEN;
-  
-  console.log('📱 PHONE_ID:', PHONE_ID);
-  console.log('🔑 TOKEN:', TOKEN ? TOKEN.substring(0, 20) + '...' : 'NO TOKEN');
 
   return axios.create({
     baseURL: `${BASE_URL}/${PHONE_ID}/messages`,

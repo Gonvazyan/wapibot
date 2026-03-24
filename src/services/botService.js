@@ -148,6 +148,8 @@ function parseDate(text) {
     return formatDate(tomorrow);
   }
 
+  const todayStr = formatDate(today);
+
   // Formato DD/MM o DD-MM
   const shortMatch = t.match(/^(\d{1,2})[\/\-](\d{1,2})$/);
   if (shortMatch) {
@@ -155,14 +157,16 @@ function parseDate(text) {
     const month = parseInt(shortMatch[2]) - 1;
     const year = today.getFullYear();
     const date = new Date(year, month, day);
-    if (!isNaN(date.getTime())) return formatDate(date);
+    const str = formatDate(date);
+    if (!isNaN(date.getTime()) && str >= todayStr) return str;
   }
 
   // Formato DD/MM/YYYY
   const fullMatch = t.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
   if (fullMatch) {
     const date = new Date(parseInt(fullMatch[3]), parseInt(fullMatch[2]) - 1, parseInt(fullMatch[1]));
-    if (!isNaN(date.getTime())) return formatDate(date);
+    const str = formatDate(date);
+    if (!isNaN(date.getTime()) && str >= todayStr) return str;
   }
 
   return null;
