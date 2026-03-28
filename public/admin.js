@@ -25,10 +25,11 @@ async function loadBusinesses() {
 
     document.getElementById('loginScreen').classList.add('hidden');
     document.getElementById('adminPanel').classList.remove('hidden');
-    document.getElementById('businessCount').textContent = data.length + ' negocio' + (data.length !== 1 ? 's' : '');
-
     var list = document.getElementById('businessList');
-    if (!data.length) {
+    var count = Array.isArray(data) ? data.length : 0;
+    document.getElementById('businessCount').textContent = count + ' negocio' + (count !== 1 ? 's' : '');
+
+    if (!count) {
       list.innerHTML = '<p style="color:#999;text-align:center;padding:20px">No hay negocios aún</p>';
       return;
     }
@@ -113,6 +114,7 @@ async function deleteBusiness(id) {
     if (item) item.remove();
     var remaining = document.querySelectorAll('.business-item').length;
     document.getElementById('businessCount').textContent = remaining + ' negocio' + (remaining !== 1 ? 's' : '');
+
     if (!remaining) document.getElementById('businessList').innerHTML = '<p style="color:#999;text-align:center;padding:20px">No hay negocios aún</p>';
     toast('🗑 Negocio eliminado');
   } else {
