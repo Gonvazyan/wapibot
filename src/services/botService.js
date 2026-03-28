@@ -52,6 +52,8 @@ async function getBusinessConfig(phoneNumberId) {
 }
 
 // ── Estado de conversación ────────────────────────────────
+const CONVERSATION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutos
+
 async function getConversationState(customerPhone, businessId) {
   try {
     const sb = getSupabase();
@@ -61,7 +63,16 @@ async function getConversationState(customerPhone, businessId) {
       .eq('customer_phone', customerPhone)
       .eq('business_id', businessId)
       .single();
-    return data || { step: 'idle', data: {} };
+
+    if (!data) return { step: 'idle', data: {} };
+
+    const lastUpdate = new Date(data.updated_at || data.created_at);
+    if (Date.now() - lastUpdate.getTime() > CONVERSATION_TIMEOUT_MS) {
+      await setConversationState(customerPhone, businessId, 'idle', {});
+      return { step: 'idle', data: {} };
+    }
+
+    return data;
   } catch (e) {
     return { step: 'idle', data: {} };
   }
@@ -86,7 +97,7 @@ async function setConversationState(customerPhone, businessId, step, data) {
     } else {
       await sb
         .from('conversation_states')
-        .insert({ customer_phone: customerPhone, business_id: businessId, step, data });
+        .insert({ customer_phone: customerPhone, business_id: businessId, step, data, updated_at: new Date().toISOString() });
     }
   } catch (e) {
     console.error('Error guardando estado:', e.message);
