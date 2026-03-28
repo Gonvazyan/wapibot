@@ -133,4 +133,8 @@ document.getElementById('passwordInput').addEventListener('keydown', function(e)
 document.getElementById('createBtn').addEventListener('click', createBusiness);
 
 // Auto-login si hay sesión guardada
-if (password) loadBusinesses();
+if (password) {
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('adminPanel').classList.remove('hidden');
+  loadBusinesses();
+}
