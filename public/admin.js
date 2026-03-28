@@ -19,7 +19,7 @@ function doLogin() {
 
 async function loadBusinesses() {
   try {
-    var res = await fetch('/api/admin/businesses', { headers: getHeaders() });
+    var res = await fetch('/api/admin/businesses?t=' + Date.now(), { headers: getHeaders() });
     if (res.status === 401) { toast('❌ Contraseña incorrecta'); return; }
     var data = await res.json();
 
