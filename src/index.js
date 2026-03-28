@@ -46,6 +46,7 @@ const adminLimiter = rateLimit({
   message: { error: 'Demasiados intentos, intenta más tarde.' },
 });
 
+app.set('trust proxy', 1); // Railway / reverse proxy
 app.use(helmet());
 app.use(cors());
 app.use(morgan('dev'));
