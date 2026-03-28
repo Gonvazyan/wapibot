@@ -14,6 +14,7 @@ router.get('/businesses', adminAuth, async (req, res) => {
     const { data, error } = await getSupabase()
       .from('businesses')
       .select('*')
+      .eq('active', true)
       .order('created_at', { ascending: false });
     if (error) throw error;
     res.json(data);
@@ -30,7 +31,10 @@ router.post('/businesses', adminAuth, async (req, res) => {
     }
     const { data, error } = await getSupabase()
       .from('businesses')
-      .insert({ business_name, business_type, phone_number_id, schedule, phone, address, services, active: true })
+      .upsert(
+        { business_name, business_type, phone_number_id, schedule, phone, address, services, active: true },
+        { onConflict: 'phone_number_id' }
+      )
       .select()
       .single();
     if (error) throw error;
@@ -60,7 +64,7 @@ router.delete('/businesses/:id', adminAuth, async (req, res) => {
   try {
     const { error } = await getSupabase()
       .from('businesses')
-      .delete()
+      .update({ active: false })
       .eq('id', req.params.id);
     if (error) throw error;
     res.json({ message: 'Negocio eliminado' });
