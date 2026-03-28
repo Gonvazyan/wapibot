@@ -60,10 +60,10 @@ router.delete('/businesses/:id', adminAuth, async (req, res) => {
   try {
     const { error } = await getSupabase()
       .from('businesses')
-      .update({ active: false })
+      .delete()
       .eq('id', req.params.id);
     if (error) throw error;
-    res.json({ message: 'Negocio desactivado' });
+    res.json({ message: 'Negocio eliminado' });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

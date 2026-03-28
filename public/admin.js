@@ -107,10 +107,14 @@ async function toggleActive(id, current) {
 }
 
 async function deleteBusiness(id) {
-  if (!confirm('¿Desactivar este negocio?')) return;
-  await fetch('/api/admin/businesses/' + id, { method: 'DELETE', headers: getHeaders() });
-  toast('🗑 Negocio desactivado');
-  loadBusinesses();
+  var res = await fetch('/api/admin/businesses/' + id, { method: 'DELETE', headers: getHeaders() });
+  if (res.ok) {
+    toast('🗑 Negocio eliminado');
+    loadBusinesses();
+  } else {
+    var err = await res.json();
+    toast('❌ Error: ' + err.error);
+  }
 }
 
 document.getElementById('loginBtn').addEventListener('click', doLogin);
