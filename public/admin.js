@@ -1,4 +1,4 @@
-var password = '';
+var password = localStorage.getItem('wapibot_pwd') || '';
 
 function toast(msg) {
   var t = document.getElementById('toast');
@@ -14,13 +14,14 @@ function getHeaders() {
 function doLogin() {
   password = document.getElementById('passwordInput').value;
   if (!password) return;
+  localStorage.setItem('wapibot_pwd', password);
   loadBusinesses();
 }
 
 async function loadBusinesses() {
   try {
     var res = await fetch('/api/admin/businesses?t=' + Date.now(), { headers: getHeaders() });
-    if (res.status === 401) { toast('❌ Contraseña incorrecta'); return; }
+    if (res.status === 401) { localStorage.removeItem('wapibot_pwd'); password = ''; toast('❌ Contraseña incorrecta'); return; }
     var data = await res.json();
 
     document.getElementById('loginScreen').classList.add('hidden');
@@ -130,3 +131,6 @@ document.getElementById('passwordInput').addEventListener('keydown', function(e)
 });
 
 document.getElementById('createBtn').addEventListener('click', createBusiness);
+
+// Auto-login si hay sesión guardada
+if (password) loadBusinesses();
