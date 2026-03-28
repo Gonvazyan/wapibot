@@ -109,8 +109,12 @@ async function toggleActive(id, current) {
 async function deleteBusiness(id) {
   var res = await fetch('/api/admin/businesses/' + id, { method: 'DELETE', headers: getHeaders() });
   if (res.ok) {
+    var item = document.querySelector('.delete-btn[data-id="' + id + '"]').closest('.business-item');
+    if (item) item.remove();
+    var remaining = document.querySelectorAll('.business-item').length;
+    document.getElementById('businessCount').textContent = remaining + ' negocio' + (remaining !== 1 ? 's' : '');
+    if (!remaining) document.getElementById('businessList').innerHTML = '<p style="color:#999;text-align:center;padding:20px">No hay negocios aún</p>';
     toast('🗑 Negocio eliminado');
-    loadBusinesses();
   } else {
     var err = await res.json();
     toast('❌ Error: ' + err.error);
