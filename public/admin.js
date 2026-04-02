@@ -45,10 +45,15 @@ async function loadBusinesses() {
           '<p>📱 ' + b.phone_number_id + ' · 🏪 ' + (b.business_type || 'Sin tipo') + ' · 📍 ' + (b.address || 'Sin dirección') + '</p>' +
         '</div>' +
         '<div class="business-actions">' +
+          '<button class="btn btn-secondary edit-btn" data-id="' + b.id + '" data-name="' + (b.business_name||'') + '" data-type="' + (b.business_type||'') + '" data-phoneid="' + (b.phone_number_id||'') + '" data-phone="' + (b.phone||'') + '" data-schedule="' + (b.schedule||'') + '" data-address="' + (b.address||'') + '" data-services="' + encodeURIComponent(b.services||'') + '">✏️</button>' +
           '<button class="btn btn-secondary toggle-btn" data-id="' + b.id + '" data-active="' + b.active + '">' + (b.active ? 'Desactivar' : 'Activar') + '</button>' +
           '<button class="btn btn-danger delete-btn" data-id="' + b.id + '">🗑</button>' +
         '</div>';
       list.appendChild(item);
+    });
+
+    document.querySelectorAll('.edit-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() { openEditModal(this.dataset); });
     });
 
     document.querySelectorAll('.toggle-btn').forEach(function(btn) {
@@ -131,6 +136,48 @@ document.getElementById('passwordInput').addEventListener('keydown', function(e)
 });
 
 document.getElementById('createBtn').addEventListener('click', createBusiness);
+
+function openEditModal(d) {
+  document.getElementById('e_id').value       = d.id;
+  document.getElementById('e_name').value     = d.name;
+  document.getElementById('e_type').value     = d.type;
+  document.getElementById('e_phone_id').value = d.phoneid;
+  document.getElementById('e_phone').value    = d.phone;
+  document.getElementById('e_schedule').value = d.schedule;
+  document.getElementById('e_address').value  = d.address;
+  document.getElementById('e_services').value = decodeURIComponent(d.services);
+  document.getElementById('editModal').classList.remove('hidden');
+}
+
+document.getElementById('editCancelBtn').addEventListener('click', function() {
+  document.getElementById('editModal').classList.add('hidden');
+});
+
+document.getElementById('editSaveBtn').addEventListener('click', async function() {
+  var id = document.getElementById('e_id').value;
+  var body = {
+    business_name:  document.getElementById('e_name').value.trim(),
+    business_type:  document.getElementById('e_type').value.trim(),
+    phone_number_id: document.getElementById('e_phone_id').value.trim(),
+    phone:          document.getElementById('e_phone').value.trim(),
+    schedule:       document.getElementById('e_schedule').value.trim(),
+    address:        document.getElementById('e_address').value.trim(),
+    services:       document.getElementById('e_services').value.trim(),
+  };
+
+  var res = await fetch('/api/admin/businesses/' + id, {
+    method: 'PUT', headers: getHeaders(), body: JSON.stringify(body)
+  });
+
+  if (res.ok) {
+    document.getElementById('editModal').classList.add('hidden');
+    toast('✅ Negocio actualizado');
+    loadBusinesses();
+  } else {
+    var err = await res.json();
+    toast('❌ Error: ' + err.error);
+  }
+});
 
 // Auto-login si hay sesión guardada
 if (password) {

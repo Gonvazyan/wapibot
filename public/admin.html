@@ -80,6 +80,19 @@
     .badge-inactive { background: #ffe0e0; color: #cc0000; }
     .business-actions { display: flex; gap: 8px; flex-shrink: 0; }
 
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100; padding: 16px;
+    }
+    .modal {
+      background: white; border-radius: 12px; padding: 24px;
+      width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto;
+    }
+    .modal h2 { font-size: 18px; margin-bottom: 20px; color: #075e54; }
+    .modal-actions { display: flex; gap: 8px; margin-top: 16px; justify-content: flex-end; }
+    .btn-success { background: #075e54; color: white; }
+
     .toast {
       position: fixed; bottom: 24px; right: 24px;
       background: #1a1a1a; color: white; padding: 12px 20px;
@@ -154,6 +167,47 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<div class="modal-overlay hidden" id="editModal">
+  <div class="modal">
+    <h2>✏️ Editar negocio</h2>
+    <input type="hidden" id="e_id" />
+    <div class="form-grid">
+      <div>
+        <label>Nombre del negocio *</label>
+        <input type="text" id="e_name" />
+      </div>
+      <div>
+        <label>Tipo de negocio</label>
+        <input type="text" id="e_type" />
+      </div>
+      <div>
+        <label>Phone Number ID de Meta *</label>
+        <input type="text" id="e_phone_id" />
+      </div>
+      <div>
+        <label>Teléfono de contacto</label>
+        <input type="text" id="e_phone" />
+      </div>
+      <div>
+        <label>Horario</label>
+        <input type="text" id="e_schedule" />
+      </div>
+      <div>
+        <label>Dirección</label>
+        <input type="text" id="e_address" />
+      </div>
+      <div class="full">
+        <label>Servicios / Descripción</label>
+        <textarea id="e_services" style="min-height:120px"></textarea>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="editCancelBtn">Cancelar</button>
+      <button class="btn btn-success" id="editSaveBtn">Guardar cambios</button>
+    </div>
+  </div>
+</div>
 
 <script src="/admin.js"></script>
 </body>
