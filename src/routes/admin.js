@@ -31,10 +31,7 @@ router.post('/businesses', adminAuth, async (req, res) => {
     }
     const { data, error } = await getSupabase()
       .from('businesses')
-      .upsert(
-        { business_name, business_type, phone_number_id, schedule, phone, address, services, active: true },
-        { onConflict: 'phone_number_id' }
-      )
+      .insert({ business_name, business_type, phone_number_id, schedule, phone, address, services, active: true })
       .select()
       .single();
     if (error) throw error;
