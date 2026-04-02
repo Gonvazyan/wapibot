@@ -238,8 +238,8 @@ async function processMessage(messageText, from, phoneNumberId) {
   }
 
   // ── Flujo de reserva activo ───────────────────────────
-  if (state.step === 'awaiting_service') {
-    return await handleServiceStep(messageText, from, config, state);
+  if (state.step === 'awaiting_people') {
+    return await handlePeopleStep(messageText, from, config, state);
   }
 
   if (state.step === 'awaiting_date') {
@@ -248,6 +248,10 @@ async function processMessage(messageText, from, phoneNumberId) {
 
   if (state.step === 'awaiting_time') {
     return await handleTimeStep(messageText, from, config, state);
+  }
+
+  if (state.step === 'awaiting_notes') {
+    return await handleNotesStep(messageText, from, config, state);
   }
 
   // ── Comandos del menú principal ───────────────────────
@@ -264,11 +268,11 @@ async function processMessage(messageText, from, phoneNumberId) {
 
   if (text === 'reservar') {
     if (config.id) {
-      await setConversationState(from, config.id, 'awaiting_service', {});
+      await setConversationState(from, config.id, 'awaiting_people', {});
     }
     return {
       type: 'text',
-      body: `📅 *Reservar cita*\n\n¿Qué servicio necesitas?\n\n${config.services}\n\nEscribe el servicio que quieres o escribe *cancelar* para volver al menú.`
+      body: `📅 *Reservar mesa*\n\n¿Para cuántas personas? Ej: *2*, *4*\n\nO escribe *cancelar* para volver al menú.`
     };
   }
 
@@ -315,19 +319,19 @@ Máximo 3 párrafos cortos.`
 }
 
 // ── Pasos del flujo de reserva ────────────────────────────
-async function handleServiceStep(messageText, from, config, state) {
-  const service = messageText.trim();
-  if (service.length < 2) {
-    return { type: 'text', body: '✏️ Por favor escribe el servicio que necesitas. Ej: *Corte de pelo*' };
+async function handlePeopleStep(messageText, from, config, state) {
+  const num = parseInt(messageText.trim());
+  if (isNaN(num) || num < 1 || num > 50) {
+    return { type: 'text', body: '👥 Por favor indica el número de personas. Ej: *2*\n\nO escribe *cancelar* para salir.' };
   }
 
   if (config.id) {
-    await setConversationState(from, config.id, 'awaiting_date', { service });
+    await setConversationState(from, config.id, 'awaiting_date', { people: num });
   }
 
   return {
     type: 'text',
-    body: `✅ Servicio: *${service}*\n\n📅 ¿Para qué día quieres la cita?\n\nPuedes escribir:\n• *Hoy*\n• *Mañana*\n• *15/03* (día/mes)\n\nO escribe *cancelar* para volver al menú.`
+    body: `✅ *${num} persona${num !== 1 ? 's' : ''}*\n\n📅 ¿Para qué día?\n\n• *Hoy*\n• *Mañana*\n• *15/03* (día/mes)\n\nO escribe *cancelar* para salir.`
   };
 }
 
@@ -348,7 +352,7 @@ async function handleDateStep(messageText, from, config, state) {
 
   return {
     type: 'text',
-    body: `✅ Fecha: *${formatDateSpanish(date)}*\n\n🕐 ¿A qué hora? Horario disponible: ${config.schedule}\n\nEscribe la hora. Ej: *10:00*, *11h*, *16:30*\n\nO escribe *cancelar* para salir.`
+    body: `✅ Fecha: *${formatDateSpanish(date)}*\n\n🕐 ¿A qué hora? Horario: ${config.schedule}\n\nEj: *14:00*, *21h*, *20:30*\n\nO escribe *cancelar* para salir.`
   };
 }
 
@@ -358,21 +362,35 @@ async function handleTimeStep(messageText, from, config, state) {
   if (!time) {
     return {
       type: 'text',
-      body: '🕐 No entendí la hora. Prueba con: *10:00*, *11h*, *16:30*\n\nO escribe *cancelar* para salir.'
+      body: '🕐 No entendí la hora. Prueba con: *14:00*, *21h*, *20:30*\n\nO escribe *cancelar* para salir.'
     };
   }
 
-  const { service, date } = state.data;
-
-  // Guardar la cita
+  const newData = { ...state.data, time };
   if (config.id) {
-    await saveAppointment(config.id, from, service, date, time);
-    await clearConversationState(from, config.id);
+    await setConversationState(from, config.id, 'awaiting_notes', newData);
   }
 
   return {
     type: 'text',
-    body: `🎉 *¡Cita confirmada!*\n\n💈 Servicio: ${service}\n📅 Día: ${formatDateSpanish(date)}\n🕐 Hora: ${time}\n📍 ${config.address}\n\nTe esperamos. Si necesitas cancelar o cambiar la cita, llámanos al ${config.phone}.\n\n¡Hasta pronto! 👋`
+    body: `✅ Hora: *${time}*\n\n📝 ¿Alguna petición especial? (alergias, ocasión especial, zona preferida...)\n\nEscribe tu petición o *ninguna* si no tienes.\nO escribe *cancelar* para salir.`
+  };
+}
+
+async function handleNotesStep(messageText, from, config, state) {
+  const notes = messageText.trim().toLowerCase() === 'ninguna' ? '' : messageText.trim();
+  const { people, date, time } = state.data;
+
+  if (config.id) {
+    await saveAppointment(config.id, from, `${people} personas`, date, time);
+    await clearConversationState(from, config.id);
+  }
+
+  const notesLine = notes ? `\n📝 Petición: ${notes}` : '';
+
+  return {
+    type: 'text',
+    body: `🎉 *¡Reserva confirmada!*\n\n👥 Personas: ${people}\n📅 Día: ${formatDateSpanish(date)}\n🕐 Hora: ${time}${notesLine}\n📍 ${config.address}\n\nTe esperamos. Para cancelar o cambiar la reserva llámanos al ${config.phone}.\n\n¡Hasta pronto! 👋`
   };
 }
 
