@@ -262,7 +262,7 @@ async function processMessage(messageText, from, phoneNumberId) {
   if (text === 'info' || text === 'información' || text === 'informacion') {
     return {
       type: 'text',
-      body: `📍 *${config.businessName}*\n\n🕐 Horario: ${config.schedule}\n📍 Dirección: ${config.address}\n📞 Teléfono: ${config.phone}\n\n💈 Servicios: ${config.services}`
+      body: `📍 *${config.businessName}*\n\n🕐 Horario: ${config.schedule}\n📍 Dirección: ${config.address}\n📞 Teléfono: ${config.phone}${config.services ? '\n\n' + config.services : ''}`
     };
   }
 
