@@ -64,6 +64,8 @@ async function loadBusinesses() {
           '<p>📱 ' + (b.phone_number_id||'—') + ' · 🏪 ' + (b.business_type||'Sin tipo') + ' · 📍 ' + (b.address||'Sin dirección') + '</p>' +
         '</div>' +
         '<div class="business-actions">' +
+          '<button class="btn btn-icon btn-notes notes-btn" title="Avisos del día"' +
+            ' data-id="' + b.id + '" data-name="' + (b.business_name||'') + '">📋</button>' +
           '<button class="btn btn-icon btn-secondary edit-btn" title="Editar"' +
             ' data-id="' + b.id + '"' +
             ' data-name="' + (b.business_name||'') + '"' +
@@ -83,6 +85,10 @@ async function loadBusinesses() {
           '<button class="btn btn-icon btn-danger delete-btn" title="Eliminar" data-id="' + b.id + '">🗑</button>' +
         '</div>';
       list.appendChild(item);
+    });
+
+    document.querySelectorAll('.notes-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() { openNotesModal(this.dataset.id, this.dataset.name); });
     });
 
     document.querySelectorAll('.edit-btn').forEach(function(btn) {
@@ -159,6 +165,65 @@ async function deleteBusiness(id) {
     toast('❌ Error: ' + err.error);
   }
 }
+
+// ── Modal de avisos ────────────────────────────────────────
+async function openNotesModal(businessId, businessName) {
+  document.getElementById('n_business_id').value = businessId;
+  document.getElementById('notesModal').querySelector('h2').textContent = '📋 Avisos — ' + businessName;
+  document.getElementById('n_note').value = '';
+  document.getElementById('notesModal').classList.remove('hidden');
+  await loadNotes(businessId);
+}
+
+async function loadNotes(businessId) {
+  var res = await fetch('/api/admin/businesses/' + businessId + '/notes?t=' + Date.now(), { headers: getHeaders() });
+  var notes = await res.json();
+  var list = document.getElementById('notesList');
+  if (!notes.length) {
+    list.innerHTML = '<p style="color:#999;text-align:center;padding:12px">No hay avisos activos</p>';
+    return;
+  }
+  list.innerHTML = '';
+  notes.forEach(function(n) {
+    var item = document.createElement('div');
+    item.className = 'note-item';
+    item.innerHTML = '<span>' + n.note + '</span><button class="note-del" data-id="' + n.id + '">✕</button>';
+    list.appendChild(item);
+  });
+  list.querySelectorAll('.note-del').forEach(function(btn) {
+    btn.addEventListener('click', async function() {
+      await fetch('/api/admin/notes/' + this.dataset.id, { method: 'DELETE', headers: getHeaders() });
+      await loadNotes(businessId);
+    });
+  });
+}
+
+document.getElementById('addNoteBtn').addEventListener('click', async function() {
+  var businessId = document.getElementById('n_business_id').value;
+  var note = document.getElementById('n_note').value.trim();
+  if (!note) return;
+  var res = await fetch('/api/admin/businesses/' + businessId + '/notes', {
+    method: 'POST', headers: getHeaders(), body: JSON.stringify({ note })
+  });
+  if (res.ok) {
+    document.getElementById('n_note').value = '';
+    await loadNotes(businessId);
+  } else {
+    toast('❌ Error añadiendo aviso');
+  }
+});
+
+document.getElementById('n_note').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') document.getElementById('addNoteBtn').click();
+});
+
+document.getElementById('notesCancelBtn').addEventListener('click', function() {
+  document.getElementById('notesModal').classList.add('hidden');
+});
+
+document.getElementById('notesModal').addEventListener('click', function(e) {
+  if (e.target === this) this.classList.add('hidden');
+});
 
 // ── Formulario colapsable ──────────────────────────────────
 function collapseForm() {

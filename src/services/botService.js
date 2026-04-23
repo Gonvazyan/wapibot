@@ -51,6 +51,22 @@ async function getBusinessConfig(phoneNumberId) {
   }
 }
 
+// ── Notas del negocio ─────────────────────────────────────
+async function getBusinessNotes(businessId) {
+  try {
+    const sb = getSupabase();
+    if (!sb || !businessId) return [];
+    const { data } = await sb
+      .from('business_notes')
+      .select('note')
+      .eq('business_id', businessId)
+      .order('created_at', { ascending: false });
+    return data ? data.map(n => n.note) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
 // ── Estado de conversación ────────────────────────────────
 const CONVERSATION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutos
 
@@ -285,6 +301,11 @@ async function processMessage(messageText, from, phoneNumberId) {
 
   // ── Respuesta con GPT para todo lo demás ─────────────
   try {
+    const notes = await getBusinessNotes(config.id);
+    const notesSection = notes.length
+      ? '\n\nAVISOS IMPORTANTES DE HOY:\n' + notes.map(n => '- ' + n).join('\n')
+      : '';
+
     const aiResponse = await getOpenAI().chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
@@ -295,7 +316,7 @@ Responde de forma amable, concisa y profesional en español.
 Horario: ${config.schedule}
 Dirección: ${config.address}
 Teléfono: ${config.phone}
-Servicios: ${config.services}
+${config.services}${notesSection}
 Si te preguntan por reservas, diles que escriban "reservar".
 Si no sabes algo, di que lo consulten directamente con el negocio.
 Máximo 3 párrafos cortos.`

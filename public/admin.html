@@ -95,6 +95,13 @@
     .modal-close:hover { color: #333; }
     .modal-actions { display: flex; gap: 8px; margin-top: 16px; justify-content: flex-end; }
 
+    /* NOTES */
+    .note-item { display:flex; align-items:center; justify-content:space-between; background:#f8f9fa; border-radius:8px; padding:10px 14px; font-size:14px; }
+    .note-item span { flex:1; }
+    .note-del { background:none; border:none; cursor:pointer; font-size:16px; color:#ff4444; padding:0 4px; }
+    .btn-notes { background:#e8f5e9; color:#075e54; border:none; }
+    .btn-notes:hover { background:#075e54; color:white; }
+
     /* TOAST */
     .toast { position: fixed; bottom: 24px; right: 24px; background: #1a1a1a; color: white; padding: 12px 20px; border-radius: 8px; font-size: 14px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 999; }
     .toast.show { opacity: 1; }
@@ -179,6 +186,23 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- MODAL AVISOS -->
+<div class="modal-overlay hidden" id="notesModal">
+  <div class="modal">
+    <div class="modal-title">
+      <h2>📋 Avisos del día</h2>
+      <button class="modal-close" id="notesCancelBtn">✕</button>
+    </div>
+    <p style="font-size:13px;color:#666;margin-bottom:16px">El bot usará estos avisos en sus respuestas automáticamente.</p>
+    <input type="hidden" id="n_business_id" />
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <input type="text" id="n_note" placeholder="Ej: Hoy sin paella de marisco" style="flex:1" />
+      <button class="btn btn-primary" id="addNoteBtn">Añadir</button>
+    </div>
+    <div id="notesList" style="display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto"></div>
+  </div>
+</div>
 
 <!-- MODAL EDITAR -->
 <div class="modal-overlay hidden" id="editModal">

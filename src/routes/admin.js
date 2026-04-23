@@ -69,4 +69,48 @@ router.delete('/businesses/:id', adminAuth, async (req, res) => {
   }
 });
 
+// ── Notas / Avisos del día ────────────────────────────────
+router.get('/businesses/:id/notes', adminAuth, async (req, res) => {
+  try {
+    const { data, error } = await getSupabase()
+      .from('business_notes')
+      .select('*')
+      .eq('business_id', req.params.id)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.post('/businesses/:id/notes', adminAuth, async (req, res) => {
+  try {
+    const { note } = req.body;
+    if (!note || !note.trim()) return res.status(400).json({ error: 'La nota no puede estar vacía' });
+    const { data, error } = await getSupabase()
+      .from('business_notes')
+      .insert({ business_id: req.params.id, note: note.trim() })
+      .select()
+      .single();
+    if (error) throw error;
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.delete('/notes/:id', adminAuth, async (req, res) => {
+  try {
+    const { error } = await getSupabase()
+      .from('business_notes')
+      .delete()
+      .eq('id', req.params.id);
+    if (error) throw error;
+    res.json({ message: 'Nota eliminada' });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 module.exports = router;
