@@ -6,7 +6,7 @@ const verifyWebhookSignature = require('../middleware/webhookSignature');
 // GET: Verificación del webhook por Meta
 router.get('/', webhookController.verify);
 
-// POST: Recibe mensajes entrantes de WhatsApp (firma verificada)
-router.post('/', verifyWebhookSignature, webhookController.handleMessage);
+// POST: Recibe mensajes entrantes de WhatsApp
+router.post('/', webhookController.handleMessage);
 
 module.exports = router;
