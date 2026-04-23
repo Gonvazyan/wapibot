@@ -211,13 +211,14 @@ function formatDateSpanish(dateStr) {
 
 // ── Parsear hora ──────────────────────────────────────────
 function parseTime(text) {
-  const t = text.toLowerCase().trim();
-  // Formatos: 10:00, 10h, 10, 10:30
-  const match = t.match(/^(\d{1,2})(?:[:\.](\d{2}))?(?:h)?$/);
+  // Eliminar prefijos naturales: "a las", "las", "sobre las"
+  const t = text.toLowerCase().trim().replace(/^(a\s+las?|las?|sobre\s+las?)\s+/, '');
+  // Formatos: 10:00, 10h, 10, 10:30, 22h
+  const match = t.match(/^(\d{1,2})(?:[:\.](\d{2}))?h?$/);
   if (match) {
     const hour = parseInt(match[1]);
     const min = match[2] ? match[2] : '00';
-    if (hour >= 7 && hour <= 21) return `${String(hour).padStart(2,'0')}:${min}`;
+    if (hour >= 7 && hour <= 23) return `${String(hour).padStart(2,'0')}:${min}`;
   }
   return null;
 }
