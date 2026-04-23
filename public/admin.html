@@ -74,8 +74,11 @@
     .business-info h3 { font-size: 16px; margin-bottom: 4px; }
     .business-info p  { font-size: 13px; color: #666; }
     .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; margin-left: 8px; }
-    .badge-active   { background: #e6f4f1; color: #075e54; }
-    .badge-inactive { background: #ffe0e0; color: #cc0000; }
+    .badge-active    { background: #e6f4f1; color: #075e54; }
+    .badge-inactive  { background: #ffe0e0; color: #cc0000; }
+    .badge-confirmed { background: #e6f4f1; color: #075e54; }
+    .badge-cancelled { background: #ffe0e0; color: #cc0000; }
+    .badge-pending   { background: #fff3e0; color: #e65100; }
     .business-actions { display: flex; gap: 8px; flex-shrink: 0; align-items: center; }
 
     /* TOGGLE SWITCH */
@@ -101,6 +104,17 @@
     .note-del { background:none; border:none; cursor:pointer; font-size:16px; color:#ff4444; padding:0 4px; }
     .btn-notes { background:#e8f5e9; color:#075e54; border:none; }
     .btn-notes:hover { background:#075e54; color:white; }
+
+    /* APPOINTMENTS */
+    .btn-appts { background:#e8f0fe; color:#1a73e8; border:none; }
+    .btn-appts:hover { background:#1a73e8; color:white; }
+    .appt-item { background:#f8f9fa; border-radius:8px; padding:12px 16px; font-size:13px; display:flex; flex-direction:column; gap:6px; }
+    .appt-header { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .appt-header strong { font-size:14px; }
+    .appt-meta { color:#555; }
+    .appt-notes { color:#075e54; font-style:italic; padding:6px 10px; background:#e6f4f1; border-radius:6px; }
+    .appt-cancel-btn { background:none; border:1px solid #ff4444; color:#ff4444; border-radius:6px; padding:3px 8px; font-size:11px; cursor:pointer; white-space:nowrap; }
+    .appt-cancel-btn:hover { background:#ff4444; color:white; }
 
     /* TOAST */
     .toast { position: fixed; bottom: 24px; right: 24px; background: #1a1a1a; color: white; padding: 12px 20px; border-radius: 8px; font-size: 14px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 999; }
@@ -246,6 +260,17 @@
       <button class="btn btn-secondary" id="editCancelBtn2">Cancelar</button>
       <button class="btn btn-success" id="editSaveBtn">Guardar cambios</button>
     </div>
+  </div>
+</div>
+
+<!-- MODAL RESERVAS -->
+<div class="modal-overlay hidden" id="apptsModal">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-title">
+      <h2 id="apptsModalTitle">📅 Reservas</h2>
+      <button class="modal-close" id="apptsCancelBtn">✕</button>
+    </div>
+    <div id="apptsList" style="display:flex;flex-direction:column;gap:10px;max-height:500px;overflow-y:auto"></div>
   </div>
 </div>
 

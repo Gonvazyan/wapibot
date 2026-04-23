@@ -64,6 +64,8 @@ async function loadBusinesses() {
           '<p>📱 ' + (b.phone_number_id||'—') + ' · 🏪 ' + (b.business_type||'Sin tipo') + ' · 📍 ' + (b.address||'Sin dirección') + '</p>' +
         '</div>' +
         '<div class="business-actions">' +
+          '<button class="btn btn-icon btn-appts appts-btn" title="Ver reservas"' +
+            ' data-id="' + b.id + '" data-name="' + (b.business_name||'') + '">📅</button>' +
           '<button class="btn btn-icon btn-notes notes-btn" title="Avisos del día"' +
             ' data-id="' + b.id + '" data-name="' + (b.business_name||'') + '">📋</button>' +
           '<button class="btn btn-icon btn-secondary edit-btn" title="Editar"' +
@@ -85,6 +87,10 @@ async function loadBusinesses() {
           '<button class="btn btn-icon btn-danger delete-btn" title="Eliminar" data-id="' + b.id + '">🗑</button>' +
         '</div>';
       list.appendChild(item);
+    });
+
+    document.querySelectorAll('.appts-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() { openApptsModal(this.dataset.id, this.dataset.name); });
     });
 
     document.querySelectorAll('.notes-btn').forEach(function(btn) {
@@ -165,6 +171,70 @@ async function deleteBusiness(id) {
     toast('❌ Error: ' + err.error);
   }
 }
+
+// ── Modal de reservas ──────────────────────────────────────
+async function openApptsModal(businessId, businessName) {
+  document.getElementById('apptsModalTitle').textContent = '📅 Reservas — ' + businessName;
+  document.getElementById('apptsModal').classList.remove('hidden');
+  await loadAppointments(businessId);
+}
+
+function formatApptDate(dateStr) {
+  if (!dateStr) return '—';
+  var parts = dateStr.split('-');
+  return parts[2] + '/' + parts[1] + '/' + parts[0];
+}
+
+async function loadAppointments(businessId) {
+  var list = document.getElementById('apptsList');
+  list.innerHTML = '<p style="color:#999;text-align:center;padding:20px">Cargando...</p>';
+
+  var res = await fetch('/api/admin/businesses/' + businessId + '/appointments?t=' + Date.now(), { headers: getHeaders() });
+  var appts = await res.json();
+
+  if (!appts.length) {
+    list.innerHTML = '<p style="color:#999;text-align:center;padding:20px">No hay reservas aún</p>';
+    return;
+  }
+
+  list.innerHTML = '';
+  appts.forEach(function(a) {
+    var statusLabel = a.status === 'confirmed' ? 'Confirmada' : a.status === 'cancelled' ? 'Cancelada' : 'Pendiente';
+    var statusClass = 'badge-' + (a.status || 'pending');
+    var item = document.createElement('div');
+    item.className = 'appt-item';
+    item.innerHTML =
+      '<div class="appt-header">' +
+        '<strong>📅 ' + formatApptDate(a.appointment_date) + ' · 🕐 ' + (a.appointment_time||'—') + ' · 👥 ' + (a.service||'—') + '</strong>' +
+        '<span class="badge ' + statusClass + '">' + statusLabel + '</span>' +
+      '</div>' +
+      '<div class="appt-meta">📞 ' + (a.customer_phone||'—') + '</div>' +
+      (a.notes ? '<div class="appt-notes">📝 ' + a.notes + '</div>' : '') +
+      (a.status !== 'cancelled' ?
+        '<div><button class="appt-cancel-btn" data-id="' + a.id + '" data-bid="' + businessId + '">Cancelar reserva</button></div>' : '');
+    list.appendChild(item);
+  });
+
+  list.querySelectorAll('.appt-cancel-btn').forEach(function(btn) {
+    btn.addEventListener('click', async function() {
+      var id = this.dataset.id;
+      var bid = this.dataset.bid;
+      await fetch('/api/admin/appointments/' + id + '/status', {
+        method: 'PUT', headers: getHeaders(), body: JSON.stringify({ status: 'cancelled' })
+      });
+      await loadAppointments(bid);
+      toast('❌ Reserva cancelada');
+    });
+  });
+}
+
+document.getElementById('apptsCancelBtn').addEventListener('click', function() {
+  document.getElementById('apptsModal').classList.add('hidden');
+});
+
+document.getElementById('apptsModal').addEventListener('click', function(e) {
+  if (e.target === this) this.classList.add('hidden');
+});
 
 // ── Modal de avisos ────────────────────────────────────────
 async function openNotesModal(businessId, businessName) {
@@ -281,7 +351,6 @@ document.getElementById('editSaveBtn').addEventListener('click', async function(
     closeEditModal();
     toast('✅ Negocio actualizado');
     await loadBusinesses();
-    // Highlight del negocio editado
     var item = document.querySelector('.business-item[data-id="' + id + '"]');
     if (item) {
       item.classList.add('highlight');

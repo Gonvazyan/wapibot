@@ -125,7 +125,7 @@ async function clearConversationState(customerPhone, businessId) {
 }
 
 // ── Guardar cita ──────────────────────────────────────────
-async function saveAppointment(businessId, customerPhone, service, date, time) {
+async function saveAppointment(businessId, customerPhone, people, date, time, notes) {
   try {
     const sb = getSupabase();
     const { data, error } = await sb
@@ -133,9 +133,10 @@ async function saveAppointment(businessId, customerPhone, service, date, time) {
       .insert({
         business_id: businessId,
         customer_phone: customerPhone,
-        service,
+        service: `${people} personas`,
         appointment_date: date,
         appointment_time: time,
+        notes: notes || null,
         status: 'confirmed',
       })
       .select()
@@ -446,7 +447,7 @@ Máximo 2 frases.`
   }
 
   if (config.id) {
-    await saveAppointment(config.id, from, `${people} personas`, date, time);
+    await saveAppointment(config.id, from, people, date, time, notes);
     await clearConversationState(from, config.id);
   }
 

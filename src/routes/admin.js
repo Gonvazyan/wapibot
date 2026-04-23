@@ -69,6 +69,38 @@ router.delete('/businesses/:id', adminAuth, async (req, res) => {
   }
 });
 
+// ── Reservas ──────────────────────────────────────────────
+router.get('/businesses/:id/appointments', adminAuth, async (req, res) => {
+  try {
+    const { data, error } = await getSupabase()
+      .from('appointments')
+      .select('*')
+      .eq('business_id', req.params.id)
+      .order('appointment_date', { ascending: false })
+      .order('appointment_time', { ascending: false });
+    if (error) throw error;
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.put('/appointments/:id/status', adminAuth, async (req, res) => {
+  try {
+    const { status } = req.body;
+    const { data, error } = await getSupabase()
+      .from('appointments')
+      .update({ status })
+      .eq('id', req.params.id)
+      .select()
+      .single();
+    if (error) throw error;
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── Notas / Avisos del día ────────────────────────────────
 router.get('/businesses/:id/notes', adminAuth, async (req, res) => {
   try {
