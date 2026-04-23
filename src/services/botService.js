@@ -125,7 +125,7 @@ async function clearConversationState(customerPhone, businessId) {
 }
 
 // ── Guardar cita ──────────────────────────────────────────
-async function saveAppointment(businessId, customerPhone, people, date, time, notes) {
+async function saveAppointment(businessId, customerPhone, people, date, time, notes, customerName) {
   try {
     const sb = getSupabase();
     const { data, error } = await sb
@@ -133,6 +133,7 @@ async function saveAppointment(businessId, customerPhone, people, date, time, no
       .insert({
         business_id: businessId,
         customer_phone: customerPhone,
+        customer_name: customerName || null,
         service: `${people} personas`,
         appointment_date: date,
         appointment_time: time,
@@ -177,6 +178,22 @@ function parseDate(text) {
   }
 
   const todayStr = formatDate(today);
+
+  // Días de la semana: "este viernes", "el sábado", "próximo lunes"
+  const days = ['domingo','lunes','martes','miércoles','miercoles','jueves','viernes','sábado','sabado'];
+  const dayMatch = t.match(/(?:este|el|próximo|proximo)?\s*(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)/);
+  if (dayMatch) {
+    const dayNames = ['domingo','lunes','martes','miércoles','miércoles','jueves','viernes','sábado','sábado'];
+    const normalizedDays = ['domingo','lunes','martes','miercoles','miercoles','jueves','viernes','sabado','sabado'];
+    const targetIdx = normalizedDays.indexOf(dayMatch[1].normalize('NFD').replace(/[̀-ͯ]/g,''));
+    if (targetIdx !== -1) {
+      const targetDay = [0,1,2,3,3,4,5,6,6][targetIdx];
+      const d = new Date(today);
+      const diff = (targetDay - d.getDay() + 7) % 7 || 7;
+      d.setDate(d.getDate() + diff);
+      return formatDate(d);
+    }
+  }
 
   // Formato DD/MM, DD-MM o DD.MM
   const shortMatch = t.match(/^(\d{1,2})[\/\-\.](\d{1,2})$/);
@@ -258,6 +275,10 @@ async function processMessage(messageText, from, phoneNumberId) {
   // ── Flujo de reserva activo ───────────────────────────
   if (state.step === 'awaiting_people') {
     return await handlePeopleStep(messageText, from, config, state);
+  }
+
+  if (state.step === 'awaiting_name') {
+    return await handleNameStep(messageText, from, config, state);
   }
 
   if (state.step === 'awaiting_date') {
@@ -350,12 +371,29 @@ async function handlePeopleStep(messageText, from, config, state) {
   }
 
   if (config.id) {
-    await setConversationState(from, config.id, 'awaiting_date', { people: num });
+    await setConversationState(from, config.id, 'awaiting_name', { people: num });
   }
 
   return {
     type: 'text',
-    body: `✅ *${num} persona${num !== 1 ? 's' : ''}*\n\n📅 ¿Para qué día?\n\n• *Hoy*\n• *Mañana*\n• *15/03* (día/mes)\n\nO escribe *cancelar* para salir.`
+    body: `✅ *${num} persona${num !== 1 ? 's' : ''}*\n\n👤 ¿A nombre de quién hacemos la reserva?\n\nO escribe *cancelar* para salir.`
+  };
+}
+
+async function handleNameStep(messageText, from, config, state) {
+  const name = messageText.trim();
+  if (name.length < 2) {
+    return { type: 'text', body: '👤 Por favor dinos tu nombre. Ej: *María García*\n\nO escribe *cancelar* para salir.' };
+  }
+
+  const newData = { ...state.data, customerName: name };
+  if (config.id) {
+    await setConversationState(from, config.id, 'awaiting_date', newData);
+  }
+
+  return {
+    type: 'text',
+    body: `✅ Nombre: *${name}*\n\n📅 ¿Para qué día?\n\n• *Hoy*\n• *Mañana*\n• *Este viernes*\n• *15/03* (día/mes)\n\nO escribe *cancelar* para salir.`
   };
 }
 
@@ -439,7 +477,7 @@ Máximo 2 frases.`
   }
 
   const notes = trimmed.toLowerCase() === 'ninguna' ? '' : trimmed;
-  const { people, date, time } = state.data || {};
+  const { people, date, time, customerName } = state.data || {};
 
   if (!people || !date || !time) {
     if (config.id) await clearConversationState(from, config.id);
@@ -447,15 +485,16 @@ Máximo 2 frases.`
   }
 
   if (config.id) {
-    await saveAppointment(config.id, from, people, date, time, notes);
+    await saveAppointment(config.id, from, people, date, time, notes, customerName);
     await clearConversationState(from, config.id);
   }
 
   const notesLine = notes ? `\n📝 Petición: ${notes}` : '';
+  const nameLine = customerName ? `\n👤 Nombre: ${customerName}` : '';
 
   return {
     type: 'text',
-    body: `🎉 *¡Reserva confirmada!*\n\n👥 Personas: ${people}\n📅 Día: ${formatDateSpanish(date)}\n🕐 Hora: ${time}${notesLine}\n📍 ${config.address}\n\nTe esperamos. Para cancelar o cambiar la reserva llámanos al ${config.phone}.\n\n¡Hasta pronto! 👋`
+    body: `🎉 *¡Reserva confirmada!*\n\n${nameLine}\n👥 Personas: ${people}\n📅 Día: ${formatDateSpanish(date)}\n🕐 Hora: ${time}${notesLine}\n📍 ${config.address}\n\nTe esperamos. Para cancelar o cambiar la reserva llámanos al ${config.phone}.\n\n¡Hasta pronto! 👋`
   };
 }
 

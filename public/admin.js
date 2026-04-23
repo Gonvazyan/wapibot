@@ -208,7 +208,7 @@ async function loadAppointments(businessId) {
         '<strong>📅 ' + formatApptDate(a.appointment_date) + ' · 🕐 ' + (a.appointment_time||'—') + ' · 👥 ' + (a.service||'—') + '</strong>' +
         '<span class="badge ' + statusClass + '">' + statusLabel + '</span>' +
       '</div>' +
-      '<div class="appt-meta">📞 ' + (a.customer_phone||'—') + '</div>' +
+      '<div class="appt-meta">' + (a.customer_name ? '👤 ' + a.customer_name + ' · ' : '') + '📞 ' + (a.customer_phone||'—') + '</div>' +
       (a.notes ? '<div class="appt-notes">📝 ' + a.notes + '</div>' : '') +
       (a.status !== 'cancelled' ?
         '<div><button class="appt-cancel-btn" data-id="' + a.id + '" data-bid="' + businessId + '">Cancelar reserva</button></div>' : '');
