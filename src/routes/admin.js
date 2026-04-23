@@ -14,7 +14,6 @@ router.get('/businesses', adminAuth, async (req, res) => {
     const { data, error } = await getSupabase()
       .from('businesses')
       .select('*')
-      .eq('active', true)
       .order('created_at', { ascending: false });
     if (error) throw error;
     res.json(data);
