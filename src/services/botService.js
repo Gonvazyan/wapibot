@@ -177,8 +177,8 @@ function parseDate(text) {
 
   const todayStr = formatDate(today);
 
-  // Formato DD/MM o DD-MM
-  const shortMatch = t.match(/^(\d{1,2})[\/\-](\d{1,2})$/);
+  // Formato DD/MM, DD-MM o DD.MM
+  const shortMatch = t.match(/^(\d{1,2})[\/\-\.](\d{1,2})$/);
   if (shortMatch) {
     const day = parseInt(shortMatch[1]);
     const month = parseInt(shortMatch[2]) - 1;
@@ -188,8 +188,8 @@ function parseDate(text) {
     if (!isNaN(date.getTime()) && str >= todayStr) return str;
   }
 
-  // Formato DD/MM/YYYY
-  const fullMatch = t.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  // Formato DD/MM/YYYY, DD-MM-YYYY o DD.MM.YYYY
+  const fullMatch = t.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
   if (fullMatch) {
     const date = new Date(parseInt(fullMatch[3]), parseInt(fullMatch[2]) - 1, parseInt(fullMatch[1]));
     const str = formatDate(date);
@@ -282,7 +282,8 @@ async function processMessage(messageText, from, phoneNumberId) {
     };
   }
 
-  if (text === 'reservar') {
+  const bookingIntent = ['reservar', 'reserva', 'quiero reservar', 'hacer una reserva', 'una mesa', 'quiero una mesa', 'pedir mesa'];
+  if (text === 'reservar' || bookingIntent.some(kw => text.includes(kw))) {
     if (config.id) {
       await setConversationState(from, config.id, 'awaiting_people', {});
     }
@@ -399,7 +400,43 @@ async function handleTimeStep(messageText, from, config, state) {
 }
 
 async function handleNotesStep(messageText, from, config, state) {
-  const notes = messageText.trim().toLowerCase() === 'ninguna' ? '' : messageText.trim();
+  const trimmed = messageText.trim();
+
+  // Si es una pregunta, respóndela y vuelve a pedir la petición especial
+  if (trimmed.endsWith('?')) {
+    try {
+      const businessNotes = await getBusinessNotes(config.id);
+      const notesSection = businessNotes.length
+        ? '\n\nAVISOS IMPORTANTES DE HOY:\n' + businessNotes.map(n => '- ' + n).join('\n')
+        : '';
+      const aiResponse = await getOpenAI().chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: `Eres el asistente de "${config.businessName}". Responde de forma breve y directa en español.
+Horario: ${config.schedule}
+${config.services || ''}${notesSection}
+Máximo 2 frases.`
+          },
+          { role: 'user', content: trimmed }
+        ],
+        max_tokens: 120,
+      });
+      const answer = aiResponse.choices[0].message.content;
+      return {
+        type: 'text',
+        body: `${answer}\n\n📝 ¿Alguna petición especial para la reserva? (alergias, zona preferida...)\n\nEscribe tu petición o *ninguna*. O escribe *cancelar* para salir.`
+      };
+    } catch (e) {
+      return {
+        type: 'text',
+        body: `📝 ¿Alguna petición especial? Escribe tu petición o *ninguna* si no tienes.\nO escribe *cancelar* para salir.`
+      };
+    }
+  }
+
+  const notes = trimmed.toLowerCase() === 'ninguna' ? '' : trimmed;
   const { people, date, time } = state.data;
 
   if (config.id) {
