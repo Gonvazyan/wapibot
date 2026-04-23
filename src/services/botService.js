@@ -437,7 +437,12 @@ Máximo 2 frases.`
   }
 
   const notes = trimmed.toLowerCase() === 'ninguna' ? '' : trimmed;
-  const { people, date, time } = state.data;
+  const { people, date, time } = state.data || {};
+
+  if (!people || !date || !time) {
+    if (config.id) await clearConversationState(from, config.id);
+    return mainMenu(config);
+  }
 
   if (config.id) {
     await saveAppointment(config.id, from, `${people} personas`, date, time);
